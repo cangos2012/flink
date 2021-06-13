@@ -26,17 +26,25 @@ under the License.
 
 {{< label Streaming >}}
 
+窗口是处理无限数据流的核心。窗口把流拆分成有限大小的桶“bucket”，我们可以将其应用于计算。
+这篇文章聚焦的是在FLINK SQL中窗口是如何运转的，以及程序员们如何从其提供的功能中获得最大的好处。
 Windows are at the heart of processing infinite streams. Windows split the stream into “buckets” of finite size, over which we can apply computations. This document focuses on how windowing is performed in Flink SQL and how the programmer can benefit to the maximum from its offered functionality.
 
+Apache Flink提供了几个开窗函数（TVF）来将你的表中的元素分割到窗口中，包含以下：
 Apache Flink provides several window table-valued functions (TVF) to divide the elements of your table into windows, including:
-
+- [滚动窗口](#tumble)
 - [Tumble Windows](#tumble)
+- [滑动窗口](#hop)
 - [Hop Windows](#hop)
+- [累计窗口](#cumulate)
 - [Cumulate Windows](#cumulate)
+- 会话窗口（很快就会支持）
 - Session Windows (will be supported soon)
 
+需要注意的是，根据你使用的开窗函数，每个元素可能会被分到不止一个窗口中。例如：一个元素可能会落到滑动窗口中的多个交叠的窗口中。
 Note that each element can logically belong to more than one window, depending on the windowing table-valued function you use. For example, HOP windowing creates overlapping windows wherein a single element can be assigned to multiple windows.
 
+开窗函数是FLINK中定义的多态表函数（PTF）。PTF是SQL2016标准的一部分，是一个可以把表作为参数的特殊的表函数。
 Windowing TVFs are Flink defined Polymorphic Table Functions (abbreviated PTF). PTF is part of the SQL 2016 standard, a special table-function, but can have a table as a parameter. PTF is a powerful feature to change the shape of a table. Because PTFs are used semantically like tables, their invocation occurs in a `FROM` clause of a `SELECT` statement.
 
 Windowing TVFs is a replacement of legacy [Grouped Window Functions]({{< ref "docs/dev/table/sql/queries/window-agg" >}}#group-window-aggregation-deprecated). Windowing TVFs is more SQL standard compliant and more powerful to support complex window-based computations, e.g. Window TopN, Window Join. However, [Grouped Window Functions]({{< ref "docs/dev/table/sql/queries/window-agg" >}}#group-window-aggregation) can only support Window Aggregation.
@@ -46,6 +54,7 @@ See more how to apply further computations based on windowing TVF:
 - [Window TopN]({{< ref "docs/dev/table/sql/queries/window-topn">}})
 - Window Join (will be supported soon)
 
+## 开窗函数
 ## Window Functions
 
 Apache Flink provides 3 built-in windowing TVFs: TUMBLE, `HOP` and `CUMULATE`. The return value of windowing TVF is a new relation that includes all columns of original relation as well as additional 3 columns named "window_start", "window_end", "window_time" to indicate the assigned window. The "window_time" field is a [time attributes]({{< ref "docs/dev/table/concepts/time_attributes" >}}) of the window after windowing TVF which can be used in subsequent time-based operations, e.g. another windowing TVF, or <a href="{{< ref "docs/dev/table/sql/queries/joins" >}}#interval-joins">interval joins</a>, <a href="{{< ref "docs/dev/table/sql/queries/over-agg" >}}">over aggregations</a>. The value of `window_time` always equal to `window_end - 1ms`.
